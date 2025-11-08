@@ -11,12 +11,16 @@ interface Props {
   connectionStatus?: string
   continueReplyEnabled?: boolean
   inputStatusText?: string
+  autoSendEnabled?: boolean
+  countdown?: number
+  autoCancelled?: boolean
 }
 
 interface Emits {
   submit: []
   continue: []
   enhance: []
+  cancelAutoSend: []
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -26,6 +30,9 @@ const props = withDefaults(defineProps<Props>(), {
   connectionStatus: '已连接',
   continueReplyEnabled: true,
   inputStatusText: '',
+  autoSendEnabled: false,
+  countdown: 0,
+  autoCancelled: false,
 })
 
 const emit = defineEmits<Emits>()
@@ -98,6 +105,10 @@ function handleEnhance() {
   }
 }
 
+function handleCancelAutoSend() {
+  emit('cancelAutoSend')
+}
+
 // 组件挂载时加载快捷键配置
 onMounted(() => {
   loadShortcutConfig()
@@ -105,8 +116,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="px-4 py-3 bg-gray-100 min-h-[60px] select-none">
-    <div v-if="!loading" class="flex justify-between items-center">
+  <div class="px-4 py-1 bg-gray-100 min-h-[40px] select-none">
+    <div v-if="!loading" class="flex justify-between items-center h-full">
       <!-- 左侧状态信息 -->
       <div class="flex items-center">
         <div class="flex items-center gap-2 text-xs text-gray-600">
@@ -114,6 +125,26 @@ onMounted(() => {
           <span class="font-medium">{{ connectionStatus }}</span>
           <span class="opacity-60">|</span>
           <span class="opacity-60">{{ statusText }}</span>
+
+          <!-- 倒计时显示或取消状态 -->
+          <template v-if="autoSendEnabled">
+            <span class="opacity-60">|</span>
+            <span
+              v-if="autoCancelled"
+              class="text-gray-500 transition-colors"
+            >
+              已取消自动发送
+            </span>
+            <span
+              v-else-if="countdown > 0"
+              :class="countdown <= 10 ? 'text-warning-600 font-semibold' : 'opacity-60'"
+              class="font-mono transition-colors cursor-pointer hover:text-error-600 hover:underline"
+              title="点击取消自动发送"
+              @click="handleCancelAutoSend"
+            >
+              自动发送: {{ countdown }}s
+            </span>
+          </template>
         </div>
       </div>
 
@@ -125,13 +156,14 @@ onMounted(() => {
             <template #trigger>
               <n-button
                 :disabled="!canSubmit || submitting"
-                size="medium"
+                size="small"
                 type="info"
+                class="shadow-sm hover:shadow-md transition-shadow"
                 data-guide="enhance-button"
                 @click="handleEnhance"
               >
                 <template #icon>
-                  <div class="i-carbon-magic-wand w-4 h-4" />
+                  <div class="i-carbon-magic-wand w-3.5 h-3.5" />
                 </template>
                 增强
               </n-button>
@@ -145,13 +177,14 @@ onMounted(() => {
               <n-button
                 :disabled="submitting"
                 :loading="submitting"
-                size="medium"
+                size="small"
                 type="default"
+                class="shadow-sm hover:shadow-md transition-shadow"
                 data-guide="continue-button"
                 @click="handleContinue"
               >
                 <template #icon>
-                  <div class="i-carbon-play w-4 h-4" />
+                  <div class="i-carbon-play w-3.5 h-3.5" />
                 </template>
                 继续
               </n-button>
@@ -166,12 +199,13 @@ onMounted(() => {
                 type="primary"
                 :disabled="!canSubmit || submitting"
                 :loading="submitting"
-                size="medium"
+                size="small"
+                class="shadow-sm hover:shadow-md transition-shadow"
                 data-guide="submit-button"
                 @click="handleSubmit"
               >
                 <template #icon>
-                  <div v-if="!submitting" class="i-carbon-send w-4 h-4" />
+                  <div v-if="!submitting" class="i-carbon-send w-3.5 h-3.5" />
                 </template>
                 {{ submitting ? '发送中...' : '发送' }}
               </n-button>

@@ -102,6 +102,12 @@ pub struct ReplyConfig {
     pub auto_continue_threshold: u32, // 字符数阈值
     #[serde(default = "default_continue_prompt")]
     pub continue_prompt: String, // 继续回复的提示词
+    #[serde(default = "default_auto_send_enabled")]
+    pub auto_send_enabled: bool, // 是否启用自动发送
+    #[serde(default = "default_auto_send_timeout")]
+    pub auto_send_timeout: u32, // 倒计时秒数（默认60）
+    #[serde(default = "default_auto_send_message")]
+    pub auto_send_message: String, // 自动发送的消息内容
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -295,6 +301,9 @@ pub fn default_reply_config() -> ReplyConfig {
         enable_continue_reply: mcp::DEFAULT_CONTINUE_REPLY_ENABLED,
         auto_continue_threshold: mcp::DEFAULT_AUTO_CONTINUE_THRESHOLD,
         continue_prompt: mcp::DEFAULT_CONTINUE_PROMPT.to_string(),
+        auto_send_enabled: mcp::DEFAULT_AUTO_SEND_ENABLED,
+        auto_send_timeout: mcp::DEFAULT_AUTO_SEND_TIMEOUT,
+        auto_send_message: mcp::DEFAULT_AUTO_SEND_MESSAGE.to_string(),
     }
 }
 
@@ -328,6 +337,18 @@ pub fn default_auto_continue_threshold() -> u32 {
 
 pub fn default_continue_prompt() -> String {
     mcp::DEFAULT_CONTINUE_PROMPT.to_string()
+}
+
+pub fn default_auto_send_enabled() -> bool {
+    mcp::DEFAULT_AUTO_SEND_ENABLED
+}
+
+pub fn default_auto_send_timeout() -> u32 {
+    mcp::DEFAULT_AUTO_SEND_TIMEOUT
+}
+
+pub fn default_auto_send_message() -> String {
+    mcp::DEFAULT_AUTO_SEND_MESSAGE.to_string()
 }
 
 pub fn default_mcp_tools() -> HashMap<String, bool> {

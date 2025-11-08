@@ -70,6 +70,15 @@ const inputRef = ref()
 const continueReplyEnabled = ref(true)
 const continuePrompt = ref('请按照最佳实践继续')
 
+// 自动发送配置和状态
+const autoSendEnabled = ref(false)
+const autoSendTimeout = ref(60)
+const autoSendMessage = ref('')
+const countdown = ref(0)
+const countdownTimer = ref<number | null>(null)
+const lastInputTime = ref<number>(0) // 记录最后输入时间
+const autoCancelled = ref(false) // 记录自动发送是否被取消
+
 // 计算属性
 const isVisible = computed(() => !!props.request)
 const hasOptions = computed(() => (props.request?.predefined_options?.length ?? 0) > 0)
@@ -93,10 +102,129 @@ async function loadReplyConfig() {
       const replyConfig = config as any
       continueReplyEnabled.value = replyConfig.enable_continue_reply ?? true
       continuePrompt.value = replyConfig.continue_prompt ?? '请按照最佳实践继续'
+
+      // 加载自动发送配置
+      autoSendEnabled.value = replyConfig.auto_send_enabled ?? false
+      autoSendTimeout.value = replyConfig.auto_send_timeout ?? 60
+      autoSendMessage.value = replyConfig.auto_send_message ?? ''
     }
   }
   catch (error) {
     console.log('加载继续回复配置失败，使用默认值:', error)
+  }
+}
+
+// 启动倒计时
+function startCountdown() {
+  if (!autoSendEnabled.value) return
+
+  countdown.value = autoSendTimeout.value
+  countdownTimer.value = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      autoSend()
+    }
+  }, 1000) as unknown as number
+}
+
+// 停止倒计时
+function stopCountdown() {
+  if (countdownTimer.value !== null) {
+    clearInterval(countdownTimer.value)
+    countdownTimer.value = null
+  }
+  countdown.value = 0
+}
+
+// 取消自动发送
+function cancelAutoSend() {
+  stopCountdown()
+  autoCancelled.value = true
+  message.info('已取消自动发送')
+}
+
+// 自动发送
+async function autoSend() {
+  stopCountdown()
+  if (submitting.value) return
+
+  // 检查用户是否正在输入（最近5秒内有输入活动）
+  const now = Date.now()
+  const isRecentlyTyping = (now - lastInputTime.value) < 5000
+
+  if (isRecentlyTyping) {
+    // 用户正在输入，延迟5秒后再次检查
+    console.log('检测到用户正在输入，延迟5秒后再次检查')
+    setTimeout(() => {
+      // 5秒后再次检查
+      checkAndAutoSend()
+    }, 5000)
+    return
+  }
+
+  // 立即执行自动发送
+  await executeAutoSend()
+}
+
+// 检查并自动发送
+async function checkAndAutoSend() {
+  if (submitting.value) return
+
+  // 检查输入框是否为空
+  const hasUserInput = userInput.value.trim().length > 0
+    || selectedOptions.value.length > 0
+    || draggedImages.value.length > 0
+
+  if (hasUserInput) {
+    // 用户已经输入了内容，不自动发送，让用户自己决定
+    console.log('检测到用户有输入，取消自动发送')
+    autoCancelled.value = true
+    message.info('检测到输入，已取消自动发送')
+    return
+  }
+
+  // 输入框为空，执行自动发送
+  await executeAutoSend()
+}
+
+// 执行自动发送
+async function executeAutoSend() {
+  if (submitting.value) return
+  submitting.value = true
+
+  try {
+    // 只发送预设的自动发送消息
+    const finalInput = autoSendMessage.value.trim() || '用户确认继续'
+
+    // 直接构建响应，不通过 handleSubmit，避免触发条件性内容追加
+    const response = {
+      user_input: finalInput,
+      selected_options: [],
+      images: [],
+      metadata: {
+        timestamp: new Date().toISOString(),
+        request_id: props.request?.id || null,
+        source: 'popup_auto_send',
+      },
+    }
+
+    if (props.mockMode) {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      message.success('自动发送成功')
+    }
+    else {
+      await invoke('send_mcp_response', { response })
+      await invoke('exit_app')
+    }
+
+    emit('response', response)
+  }
+  catch (error) {
+    console.error('自动发送失败:', error)
+    message.error('自动发送失败，请重试')
+  }
+  finally {
+    submitting.value = false
   }
 }
 
@@ -115,12 +243,19 @@ let telegramUnlisten: (() => void) | null = null
 watch(() => props.request, (newRequest) => {
   if (newRequest) {
     resetForm()
+    autoCancelled.value = false // 重置取消状态
     loading.value = true
     // 每次显示弹窗时重新加载配置
     loadReplyConfig()
     setTimeout(() => {
       loading.value = false
+      // 加载完成后启动倒计时
+      startCountdown()
     }, 300)
+  }
+  else {
+    // 弹窗关闭时停止倒计时
+    stopCountdown()
   }
 }, { immediate: true })
 
@@ -183,6 +318,26 @@ function handleOptionToggle(option: string) {
   }
 }
 
+// 处理选项复选框变化
+function handleOptionChange(option: string, checked: boolean) {
+  if (checked) {
+    if (!selectedOptions.value.includes(option)) {
+      selectedOptions.value.push(option)
+    }
+  }
+  else {
+    const idx = selectedOptions.value.indexOf(option)
+    if (idx > -1) {
+      selectedOptions.value.splice(idx, 1)
+    }
+  }
+
+  // 同步到PopupInput组件
+  if (inputRef.value) {
+    inputRef.value.updateData({ selectedOptions: selectedOptions.value })
+  }
+}
+
 // 处理文本更新
 function handleTextUpdate(text: string) {
   userInput.value = text
@@ -203,6 +358,15 @@ onMounted(() => {
 onUnmounted(() => {
   if (telegramUnlisten) {
     telegramUnlisten()
+  }
+  // 清理倒计时
+  stopCountdown()
+})
+
+// 监听提交状态，提交时停止倒计时
+watch(submitting, (isSubmitting) => {
+  if (isSubmitting) {
+    stopCountdown()
   }
 })
 
@@ -270,6 +434,9 @@ function handleInputUpdate(data: { userInput: string, selectedOptions: string[],
   userInput.value = data.userInput
   selectedOptions.value = data.selectedOptions
   draggedImages.value = data.draggedImages
+
+  // 更新最后输入时间
+  lastInputTime.value = Date.now()
 }
 
 // 处理图片添加 - 移除重复逻辑，避免双重添加
@@ -388,21 +555,58 @@ Here is my original instruction:
 </script>
 
 <template>
-  <div v-if="isVisible" class="flex flex-col flex-1">
-    <!-- 内容区域 - 可滚动 -->
-    <div class="flex-1 overflow-y-auto scrollbar-thin">
-      <!-- 消息内容 - 允许选中 -->
-      <div class="mx-2 mt-2 mb-1 px-4 py-3 bg-black-100 rounded-lg select-text" data-guide="popup-content">
-        <PopupContent :request="request" :loading="loading" :current-theme="props.appConfig.theme" @quote-message="handleQuoteMessage" />
-      </div>
+  <div v-if="isVisible" class="flex-1 flex flex-col min-h-0">
+    <!-- 可滚动区域容器 - 带有顶部遮罩阴影 -->
+    <div class="flex-1 relative min-h-0">
+      <!-- 顶部阴影遮罩层 -->
+      <div class="absolute top-0 left-0 right-0 h-1 pointer-events-none z-10" style="background: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 100%);"></div>
 
-      <!-- 输入和选项 - 允许选中 -->
-      <div class="px-4 pb-3 bg-black select-text">
-        <PopupInput
-          ref="inputRef" :request="request" :loading="loading" :submitting="submitting"
-          @update="handleInputUpdate" @image-add="handleImageAdd" @image-remove="handleImageRemove"
-        />
+      <!-- 可滚动区域 - 包含消息内容和预定义选项 -->
+      <div class="absolute inset-0 overflow-y-auto custom-scrollbar">
+        <!-- 内容容器 - 居中布局 -->
+        <div class="max-w-3xl mx-auto px-2">
+          <!-- AI消息内容 -->
+          <div class="mt-2 mb-2 px-4 py-3 bg-black-100 rounded-lg select-text" data-guide="popup-content">
+            <PopupContent :request="request" :loading="loading" :current-theme="props.appConfig.theme" @quote-message="handleQuoteMessage" />
+          </div>
+
+          <!-- 预定义选项 - 移到可滚动区域 -->
+          <div v-if="!loading && hasOptions" class="mb-2 px-3 py-2 bg-black-100 rounded-lg select-text" data-guide="predefined-options">
+            <h4 class="text-sm font-medium text-white mb-2">
+              请选择选项
+            </h4>
+            <n-space vertical :size="4">
+              <div
+                v-for="(option, index) in request!.predefined_options"
+                :key="`option-${index}`"
+                class="rounded-lg p-2 border border-gray-600 bg-gray-100 cursor-pointer hover:opacity-80 transition-opacity"
+                @click="handleOptionToggle(option)"
+              >
+                <n-checkbox
+                  :value="option"
+                  :checked="selectedOptions.includes(option)"
+                  :disabled="submitting"
+                  size="medium"
+                  @update:checked="(checked: boolean) => handleOptionChange(option, checked)"
+                  @click.stop
+                >
+                  {{ option }}
+                </n-checkbox>
+              </div>
+            </n-space>
+          </div>
+        </div>
       </div>
+      <!-- 底部阴影遮罩层 -->
+      <div class="absolute bottom-0 left-0 right-0 h-1 pointer-events-none z-10" style="background: linear-gradient(to top, rgba(0,0,0,0.15) 0%, transparent 100%);"></div>
+    </div>
+
+    <!-- PopupInput区域 - 固定在下方 -->
+    <div class="flex-shrink-0 px-4 py-0 bg-black border-t-2 border-black-200 shadow-[0_-2px_4px_0_rgba(0,0,0,0.15)] select-text relative z-20">
+      <PopupInput
+        ref="inputRef" :request="request" :loading="loading" :submitting="submitting"
+        @update="handleInputUpdate" @image-add="handleImageAdd" @image-remove="handleImageRemove"
+      />
     </div>
 
     <!-- 底部操作栏 - 固定在底部 -->
@@ -410,8 +614,14 @@ Here is my original instruction:
       <PopupActions
         :request="request" :loading="loading" :submitting="submitting" :can-submit="canSubmit"
         :continue-reply-enabled="continueReplyEnabled" :input-status-text="inputStatusText"
+        :auto-send-enabled="autoSendEnabled" :countdown="countdown" :auto-cancelled="autoCancelled"
         @submit="handleSubmit" @continue="handleContinue" @enhance="handleEnhance"
+        @cancel-auto-send="cancelAutoSend"
       />
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 滚动条样式已移到全局 CSS */
+</style>

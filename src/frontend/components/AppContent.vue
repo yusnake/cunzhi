@@ -107,7 +107,7 @@ onUnmounted(() => {
       class="flex flex-col w-full h-screen bg-black text-white select-none"
     >
       <!-- 头部 - 固定在顶部 -->
-      <div class="sticky top-0 z-50 flex-shrink-0 bg-black-100 border-b-2 border-black-200">
+      <div class="flex-shrink-0 bg-black-100 border-b-2 border-black-200">
         <PopupHeader
           :current-theme="props.appConfig.theme"
           :loading="false"
@@ -122,7 +122,7 @@ onUnmounted(() => {
       <!-- 设置界面 -->
       <div
         v-if="showPopupSettings"
-        class="flex-1 overflow-y-auto scrollbar-thin"
+        class="flex-1 overflow-y-auto custom-scrollbar"
       >
         <LayoutWrapper
           :app-config="props.appConfig"

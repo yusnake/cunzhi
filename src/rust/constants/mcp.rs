@@ -18,6 +18,15 @@ pub const DEFAULT_AUTO_CONTINUE_THRESHOLD: u32 = 1000;
 /// 默认继续提示词
 pub const DEFAULT_CONTINUE_PROMPT: &str = "请按照最佳实践继续";
 
+/// 默认启用自动发送
+pub const DEFAULT_AUTO_SEND_ENABLED: bool = false;
+
+/// 默认自动发送倒计时时间（秒）
+pub const DEFAULT_AUTO_SEND_TIMEOUT: u32 = 60;
+
+/// 默认自动发送消息内容
+pub const DEFAULT_AUTO_SEND_MESSAGE: &str = "";
+
 /// MCP 请求超时时间 (ms)
 pub const REQUEST_TIMEOUT_MS: u64 = 30000;
 

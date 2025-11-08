@@ -158,31 +158,6 @@ function emitUpdate() {
   })
 }
 
-// 处理选项变化
-function handleOptionChange(option: string, checked: boolean) {
-  if (checked) {
-    selectedOptions.value.push(option)
-  }
-  else {
-    const idx = selectedOptions.value.indexOf(option)
-    if (idx > -1)
-      selectedOptions.value.splice(idx, 1)
-  }
-  emitUpdate()
-}
-
-// 处理选项切换（整行点击）
-function handleOptionToggle(option: string) {
-  const idx = selectedOptions.value.indexOf(option)
-  if (idx > -1) {
-    selectedOptions.value.splice(idx, 1)
-  }
-  else {
-    selectedOptions.value.push(option)
-  }
-  emitUpdate()
-}
-
 // 移除了所有拖拽和上传组件相关的代码
 
 function handleImagePaste(event: ClipboardEvent) {
@@ -571,42 +546,16 @@ defineExpose({
 </script>
 
 <template>
-  <div class="space-y-3">
-    <!-- 预定义选项 -->
-    <div v-if="!loading && hasOptions" class="space-y-3" data-guide="predefined-options">
-      <h4 class="text-sm font-medium text-white">
-        请选择选项
-      </h4>
-      <n-space vertical size="small">
-        <div
-          v-for="(option, index) in request!.predefined_options"
-          :key="`option-${index}`"
-          class="rounded-lg p-3 border border-gray-600 bg-gray-100 cursor-pointer hover:opacity-80 transition-opacity"
-          @click="handleOptionToggle(option)"
-        >
-          <n-checkbox
-            :value="option"
-            :checked="selectedOptions.includes(option)"
-            :disabled="submitting"
-            size="medium"
-            @update:checked="(checked: boolean) => handleOptionChange(option, checked)"
-            @click.stop
-          >
-            {{ option }}
-          </n-checkbox>
-        </div>
-      </n-space>
-    </div>
-
+  <div class="popup-input-section">
     <!-- 图片预览区域 -->
-    <div v-if="!loading && uploadedImages.length > 0" class="space-y-3">
+    <div v-if="!loading && uploadedImages.length > 0" class="space-y-1">
       <h4 class="text-sm font-medium text-white">
         已添加的图片 ({{ uploadedImages.length }})
       </h4>
 
       <!-- 使用 Naive UI 的图片组件，支持预览和放大 -->
       <n-image-group>
-        <div class="flex flex-wrap gap-3">
+        <div class="flex flex-wrap gap-2">
           <div
             v-for="(image, index) in uploadedImages"
             :key="`image-${index}`"
@@ -615,27 +564,27 @@ defineExpose({
             <!-- 使用 n-image 组件，启用预览功能 -->
             <n-image
               :src="image"
-              width="100"
-              height="100"
+              width="50"
+              height="50"
               object-fit="cover"
               class="rounded-lg border-2 border-gray-300 hover:border-primary-400 transition-all duration-200 cursor-pointer"
             />
 
             <!-- 删除按钮 -->
             <n-button
-              class="absolute -top-2 -right-2 z-10"
+              class="absolute -top-1 -right-1 z-10"
               size="tiny"
               type="error"
               circle
               @click="removeImage(index)"
             >
               <template #icon>
-                <div class="i-carbon-close w-3 h-3" />
+                <div class="i-carbon-close w-2.5 h-2.5" />
               </template>
             </n-button>
 
             <!-- 序号 -->
-            <div class="absolute bottom-1 left-1 w-5 h-5 bg-primary-500 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-sm z-5">
+            <div class="absolute bottom-0.5 left-0.5 w-4 h-4 bg-primary-500 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-sm z-5">
               {{ index + 1 }}
             </div>
           </div>
@@ -644,13 +593,19 @@ defineExpose({
     </div>
 
     <!-- 文本输入区域 -->
-    <div v-if="!loading" class="space-y-3">
-      <h4 class="text-sm font-medium text-white">
-        {{ hasOptions ? '补充说明 (可选)' : '请输入您的回复' }}
-      </h4>
+      <div v-if="!loading" class="space-y-1">
+        <!-- 标题和提示在同一行 -->
+        <div class="flex items-center justify-between leading-tight">
+          <h4 class="text-xs font-medium text-white">
+            请输入您的回复
+          </h4>
+          <div v-if="uploadedImages.length === 0" class="text-xs text-on-surface-secondary">
+            💡 提示：可以在输入框中粘贴图片 ({{ pasteShortcut }})
+          </div>
+        </div>
 
       <!-- 自定义prompt按钮区域 -->
-      <div v-if="customPromptEnabled && customPrompts.length > 0" class="space-y-2" data-guide="custom-prompts">
+      <div v-if="customPromptEnabled && customPrompts.length > 0" class="space-y-1" data-guide="custom-prompts">
         <div class="text-xs text-on-surface-secondary flex items-center gap-2">
           <div class="i-carbon-bookmark w-3 h-3 text-primary-500" />
           <span>快捷模板 (拖拽调整顺序):</span>
@@ -683,7 +638,7 @@ defineExpose({
       </div>
 
       <!-- 上下文追加区域 -->
-      <div v-if="customPromptEnabled && conditionalPrompts.length > 0" class="space-y-2" data-guide="context-append">
+      <div v-if="customPromptEnabled && conditionalPrompts.length > 0" class="space-y-1" data-guide="context-append">
         <div class="text-xs text-on-surface-secondary flex items-center gap-2">
           <div class="i-carbon-settings-adjust w-3 h-3 text-primary-500" />
           <span>上下文追加:</span>
@@ -711,22 +666,16 @@ defineExpose({
         </div>
       </div>
 
-      <!-- 图片提示区域 -->
-      <div v-if="uploadedImages.length === 0" class="text-center">
-        <div class="text-xs text-on-surface-secondary">
-          💡 提示：可以在输入框中粘贴图片 ({{ pasteShortcut }})
-        </div>
-      </div>
-
       <!-- 文本输入框 -->
       <n-input
         ref="textareaRef"
         v-model:value="userInput"
         type="textarea"
-        size="small"
-        :placeholder="hasOptions ? `您可以在这里添加补充说明... (支持粘贴图片 ${pasteShortcut})` : `请输入您的回复... (支持粘贴图片 ${pasteShortcut})`"
+        size="medium"
+        class="custom-textarea"
+        :placeholder="`请输入您的回复... (支持粘贴图片 ${pasteShortcut})`"
         :disabled="submitting"
-        :autosize="{ minRows: 3, maxRows: 6 }"
+        :autosize="{ minRows: 4, maxRows: 8 }"
         data-guide="popup-input"
         @paste="handleImagePaste"
       />
@@ -779,5 +728,36 @@ defineExpose({
 .sortable-drag {
   opacity: 0.8;
   transform: rotate(5deg);
+}
+
+/* 输入区域整体布局，压缩块高度 */
+.popup-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 !important;
+}
+
+/* 自定义输入框圆角与高度 */
+.custom-textarea :deep(.n-input__textarea-el) {
+  border-radius: 12px !important;
+  padding: 10px 12px 10px 2px !important;
+  line-height: 1.4 !important;
+  min-height: 64px !important;
+  text-indent: 0 !important;
+  text-align: left !important;
+}
+
+.custom-textarea :deep(.n-input__textarea-el::placeholder) {
+  text-indent: 0 !important;
+  padding-left: 0 !important;
+}
+
+.custom-textarea :deep(.n-input__border) {
+  border-radius: 12px !important;
+}
+
+.custom-textarea :deep(.n-input__state-border) {
+  border-radius: 12px !important;
 }
 </style>

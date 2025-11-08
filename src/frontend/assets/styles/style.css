@@ -80,3 +80,40 @@ body {
   margin-left: 0 !important;
   font-style: italic !important;
 }
+
+/* 全局滚动条样式 - 强制常显且hover变宽 */
+.custom-scrollbar {
+  overflow-y: scroll !important;
+  scrollbar-gutter: stable !important;
+  scrollbar-width: auto !important;
+  scrollbar-color: rgba(128, 128, 128, 0.6) transparent !important;
+}
+
+/* WebKit 滚动条样式 - 使用高优先级选择器 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.08) !important;
+  border-radius: 6px !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.5) !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.7) !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.9) !important;
+}
