@@ -47,6 +47,9 @@ test_client.py
 *.temp
 .cache/
 
+# Docker test output (may contain captured secrets/env vars from host)
+process_audit.txt
+
 # Environment
 .env
 .env.local
