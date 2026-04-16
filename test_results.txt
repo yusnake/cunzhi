@@ -1,0 +1,42 @@
+
+========================================
+ TEST 1: Basic container lifecycle
+========================================
+[INFO]  Ensuring image 'alpine' is available...
+[INFO]  Creating container...
+[INFO]  Container created: 3e6132406e6f
+[INFO]  Starting container...
+[INFO]  Waiting for container to finish...
+[INFO]  Container exited with code: 0
+[INFO]  Fetching logs...
+[INFO]  Raw log output: 'hello'
+[PASS]  TEST 1: Container ran 'echo hello' successfully (exit=0, logs contain 'hello')
+[INFO]  Deleting container...
+[INFO]  Container deleted.
+
+========================================
+ TEST 2: Volume (bind) mount test
+========================================
+[INFO]  Creating container with /etc bind-mounted as /hostetc:ro...
+[INFO]  Container created: 53d59fc7a40b
+[INFO]  Container exited with code: 0
+[INFO]  Log output: '/hostetc/hostname'
+[PASS]  TEST 2: Volume mount succeeded; 'ls /hostetc/hostname' exit=0
+[INFO]  Container deleted.
+
+========================================
+ TEST 3: Proc filesystem mount test
+========================================
+[INFO]  Creating container with /proc bind-mounted as /hp:ro...
+[INFO]  Container created: fbf0a2586b05
+[INFO]  Container exited with code: 0
+[INFO]  Log output: 'auxvcgroupcmdlinecommenvironfdinfogid_maplimitsmapsmountinfomountsoom_scoreoom_score_adjrootsmapsstatstatmstatustaskuid_map'
+[PASS]  TEST 3: /proc bind-mount works; ls /hp/1/ shows proc entries (exit=0)
+[INFO]  Container deleted.
+
+========================================
+ RESULTS
+========================================
+  Passed: 3
+  Failed: 0
+========================================
