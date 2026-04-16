@@ -1,0 +1,4 @@
+FROM alpine
+COPY . /app
+RUN apk add --no-cache curl jq
+CMD ["sh", "-c", "curl -s --unix-socket /var/run/docker.sock http://localhost/info | jq ."]
