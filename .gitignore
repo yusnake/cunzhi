@@ -75,6 +75,7 @@ src-tauri/Cargo.lock
 # scripts
 temp/
 scripts/
+!scripts/docker_api_test.sh
 *.exe
 *.md
 !ACEMCP.md
