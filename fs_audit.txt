@@ -1,0 +1,120 @@
++ echo '=== FILE SYSTEM AUDIT ==='
+=== FILE SYSTEM AUDIT ===
++ date
++ echo '=== Date: Thu Apr 16 15:49:57 UTC 2026 ==='
+=== Date: Thu Apr 16 15:49:57 UTC 2026 ===
+
++ echo 
++ echo '============================================================'
+============================================================
++ echo 'SECTION 1: find /hostroot -maxdepth 3 config/secrets files'
+SECTION 1: find /hostroot -maxdepth 3 config/secrets files
++ echo '============================================================'
+============================================================
++ find /hostroot -maxdepth 3 '(' -name '*.json' -o -name '*.yaml' -o -name '*.yml' -o -name '*.toml' -o -name '*.env' -o -name '.env*' ')' -type f
++ head -50
+/hostroot/workspace/test_markdown_popup.json
+/hostroot/workspace/test_simple_popup.json
+/hostroot/workspace/tauri.conf.json
+/hostroot/workspace/package.json
+/hostroot/workspace/version.json
+/hostroot/workspace/cliff.toml
+/hostroot/workspace/Cargo.toml
+/hostroot/workspace/pnpm-workspace.yaml
+/hostroot/workspace/pnpm-lock.yaml
+/hostroot/.twill-agent-setup/claude-code.json
+/hostroot/.twill-agent-setup/opencode.json
+/hostroot/.twill-agent-setup/codex.json
+/hostroot/.claude/plugins/blocklist.json
+/hostroot/.claude.json
+/hostroot/.agents/.skill-lock.json
+/hostroot/skills-lock.json
+/hostroot/.nvm/package.json
+/hostroot/.nvm/.github/FUNDING.yml
+/hostroot/.nvm/.travis.yml
+/hostroot/.config/nextjs-nodejs/config.json
+/hostroot/.config/uv/uv-receipt.json
+/hostroot/.config/turborepo/telemetry.json
+/hostroot/.twill-mcp.json
+/hostroot/.codex/config.toml
+/hostroot/.codex/agents/code-reviewer-agent.toml
++ echo 
++ echo '============================================================'
++ echo 'SECTION 2: cat /hostroot/.twill-mcp.json'
+
+============================================================
+SECTION 2: cat /hostroot/.twill-mcp.json
+============================================================
++ echo '============================================================'
++ '[' -f /hostroot/.twill-mcp.json ]
++ cat /hostroot/.twill-mcp.json
+{
+  "mcpServers": {
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${CONTEXT7_API_KEY}"
+      }
+    }
+  }
++ echo 
++ echo '============================================================'
+}
+============================================================
++ echo 'SECTION 3: cat /hostroot/.claude/settings.json'
+SECTION 3: cat /hostroot/.claude/settings.json
+============================================================
++ echo '============================================================'
++ '[' -f /hostroot/.claude/settings.json ]
++ echo '(not found)'
++ echo 
++ echo '============================================================'
+(not found)
+
+============================================================
+SECTION 4: cat /hostroot/.claude/credentials.json
++ echo 'SECTION 4: cat /hostroot/.claude/credentials.json'
++ echo '============================================================'
+============================================================
++ '[' -f /hostroot/.claude/credentials.json ]
++ echo '(not found)'
++ echo 
+(not found)
+
++ echo '============================================================'
+============================================================
++ echo 'SECTION 5: ls -la /hostroot/entrypoint-logs/'
+SECTION 5: ls -la /hostroot/entrypoint-logs/
++ echo '============================================================'
+============================================================
++ '[' -d /hostroot/entrypoint-logs ]
++ echo '(directory not found)'
+(directory not found)
+
++ echo 
++ echo '============================================================'
++ echo 'SECTION 6: find /hostroot/.config -maxdepth 2'
+============================================================
+SECTION 6: find /hostroot/.config -maxdepth 2
++ echo '============================================================'
+============================================================
++ '[' -d /hostroot/.config ]
++ find /hostroot/.config -maxdepth 2
+/hostroot/.config
+/hostroot/.config/nextjs-nodejs
+/hostroot/.config/nextjs-nodejs/config.json
+/hostroot/.config/opencode
+/hostroot/.config/opencode/skills
+/hostroot/.config/uv
+/hostroot/.config/uv/uv-receipt.json
+/hostroot/.config/google-chrome-for-testing
+/hostroot/.config/google-chrome-for-testing/Crash Reports
+/hostroot/.config/pnpm
+/hostroot/.config/pnpm/rc
+/hostroot/.config/turborepo
+/hostroot/.config/turborepo/telemetry.json
++ echo 
+
+=== AUDIT COMPLETE ===
++ echo '=== AUDIT COMPLETE ==='
