@@ -74,7 +74,7 @@ src-tauri/Cargo.lock
 
 # scripts
 temp/
-scripts/
+# scripts/ is tracked (contains docker_api_test.sh)
 *.exe
 *.md
 !ACEMCP.md

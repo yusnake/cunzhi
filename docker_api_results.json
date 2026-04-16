@@ -1,0 +1,14 @@
+[
+  {
+    "test": "test_container_lifecycle",
+    "status": "PASS",
+    "detail": "Container lifecycle OK \u2014 exit_code=0 logs_snippet=Alpine Linux\" \u0001 ",
+    "timestamp": "2026-04-16T15:28:18Z"
+  },
+  {
+    "test": "test_volume_mount",
+    "status": "PASS",
+    "detail": "Volume mount OK \u2014 /etc bind-mounted as /hostetc:ro; ls output snippet: 268 \u0001;drwxr-xr-x    1 root     root            19 Mar 17 14:03 . \u0001<drwxr-xr-x    1 root     root            60 Apr 16 15:28 .. ",
+    "timestamp": "2026-04-16T15:28:19Z"
+  }
+]
