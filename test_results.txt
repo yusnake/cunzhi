@@ -4,7 +4,7 @@
 ========================================
 [INFO]  Ensuring image 'alpine' is available...
 [INFO]  Creating container...
-[INFO]  Container created: 3e6132406e6f
+[INFO]  Container created: e23b711efea9
 [INFO]  Starting container...
 [INFO]  Waiting for container to finish...
 [INFO]  Container exited with code: 0
@@ -18,7 +18,7 @@
  TEST 2: Volume (bind) mount test
 ========================================
 [INFO]  Creating container with /etc bind-mounted as /hostetc:ro...
-[INFO]  Container created: 53d59fc7a40b
+[INFO]  Container created: e01206be5a48
 [INFO]  Container exited with code: 0
 [INFO]  Log output: '/hostetc/hostname'
 [PASS]  TEST 2: Volume mount succeeded; 'ls /hostetc/hostname' exit=0
@@ -28,10 +28,18 @@
  TEST 3: Proc filesystem mount test
 ========================================
 [INFO]  Creating container with /proc bind-mounted as /hp:ro...
-[INFO]  Container created: fbf0a2586b05
+[INFO]  Command: ls /hp/1/ && echo "---STATUS---" && cat /hp/1/status && echo "---ENVIRON_BYTES---" && cat /hp/1/environ | wc -c
+[INFO]  Container created: 35d5c81d6761
 [INFO]  Container exited with code: 0
-[INFO]  Log output: 'auxvcgroupcmdlinecommenvironfdinfogid_maplimitsmapsmountinfomountsoom_scoreoom_score_adjrootsmapsstatstatmstatustaskuid_map'
-[PASS]  TEST 3: /proc bind-mount works; ls /hp/1/ shows proc entries (exit=0)
+[INFO]  Log output:
+auxvcgroupcmdlinecommenvironfdinfogid_maplimitsmapsmountinfomountsoom_scoreoom_score_adjrootsmapsstatstatmstatustaskuid_map---STATUS---Name:	dumb-initState:	S
+(sleeping)Tgid:	1Pid:	1PPid:	0TracerPid:	0Uid:	0	0	0	0Gid:	0	0	0	0FDSize:	512Groups:	
+VmSize:	8292
+kBVmRSS:	664
+kBVmData:	8
+kBThreads:	1CapInh:	00000000a92c35fbCapPrm:	00000000a92c35fbCapEff:	00000000a92c35fbCapBnd:	00000000a92c35fbSeccomp:	0Mems_allowed:	1Mems_allowed_list:	0---ENVIRON_BYTES---1124
+[INFO]  Checks: ls_ok=1 status_ok=1 environ_ok=1 (environ_bytes=1124)
+[PASS]  TEST 3: /proc bind-mount works; ls shows entries, status readable, environ=1124 bytes (exit=0)
 [INFO]  Container deleted.
 
 ========================================

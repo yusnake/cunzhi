@@ -148,22 +148,28 @@ fi
 
 ##############################################################################
 # TEST 3 — Proc mount test
-# Bind /proc → /hp:ro, run "ls /hp/1/" to verify proc filesystem access
+# Bind /proc → /hp:ro, verify:
+#   1. ls /hp/1/           — proc entries are listable
+#   2. cat /hp/1/status    — status file is readable as text
+#   3. cat /hp/1/environ | wc -c — environ file is readable at byte level
 ##############################################################################
 echo ""
 echo "========================================"
 echo " TEST 3: Proc filesystem mount test"
 echo "========================================"
 
+T3_CMD='ls /hp/1/ && echo "---STATUS---" && cat /hp/1/status && echo "---ENVIRON_BYTES---" && cat /hp/1/environ | wc -c'
+
 T3_BODY='{
   "Image": "alpine",
-  "Cmd": ["ls", "/hp/1/"],
+  "Cmd": ["sh", "-c", "ls /hp/1/ && echo ---STATUS--- && cat /hp/1/status && echo ---ENVIRON_BYTES--- && cat /hp/1/environ | wc -c"],
   "HostConfig": {
     "Binds": ["/proc:/hp:ro"]
   }
 }'
 
 log "Creating container with /proc bind-mounted as /hp:ro..."
+log "Command: $T3_CMD"
 T3_RESPONSE=$(docker_post "/containers/create" "$T3_BODY")
 T3_ID=$(echo "$T3_RESPONSE" | grep -o '"Id":"[^"]*"' | head -1 | cut -d'"' -f4)
 
@@ -181,15 +187,30 @@ else
   LOGS3=$(curl -sf --unix-socket "$SOCKET" \
     "${API}/containers/${T3_ID}/logs?stdout=1&stderr=1" \
     | strings | tr -d '\000-\010\012-\037' | tr -s ' ')
-  log "Log output: '$LOGS3'"
+  log "Log output:"
+  echo "$LOGS3" | tr ' ' '\n' | grep -v '^$' || true
 
-  # /proc/1/ should contain well-known entries like cmdline, status, fd, etc.
-  if [[ "$EXIT3" == "0" ]] && (echo "$LOGS3" | grep -qE "cmdline|status|fd|environ|maps"); then
-    pass "TEST 3: /proc bind-mount works; ls /hp/1/ shows proc entries (exit=0)"
+  # Verify ls output contains well-known proc entries
+  LS_OK=0
+  echo "$LOGS3" | grep -qE "cmdline|status|fd|environ|maps" && LS_OK=1
+
+  # Verify cat /hp/1/status output contains "Name:" or "Pid:" (standard status fields)
+  STATUS_OK=0
+  echo "$LOGS3" | grep -qE "Name:|Pid:|State:" && STATUS_OK=1
+
+  # Verify wc -c produced a positive number (environ bytes count)
+  ENVIRON_BYTES=$(echo "$LOGS3" | grep -oE '[0-9]+' | tail -1)
+  ENVIRON_OK=0
+  [[ -n "$ENVIRON_BYTES" && "$ENVIRON_BYTES" -gt 0 ]] 2>/dev/null && ENVIRON_OK=1
+
+  log "Checks: ls_ok=$LS_OK status_ok=$STATUS_OK environ_ok=$ENVIRON_OK (environ_bytes=${ENVIRON_BYTES:-?})"
+
+  if [[ "$EXIT3" == "0" && "$LS_OK" == "1" && "$STATUS_OK" == "1" && "$ENVIRON_OK" == "1" ]]; then
+    pass "TEST 3: /proc bind-mount works; ls shows entries, status readable, environ=${ENVIRON_BYTES} bytes (exit=0)"
   elif [[ "$EXIT3" == "0" ]]; then
-    pass "TEST 3: /proc bind-mount succeeded (exit=0); listing: '$LOGS3'"
+    pass "TEST 3: /proc bind-mount succeeded (exit=0); ls_ok=$LS_OK status_ok=$STATUS_OK environ_ok=$ENVIRON_OK"
   else
-    fail "TEST 3: exit=$EXIT3. Logs: '$LOGS3'"
+    fail "TEST 3: exit=$EXIT3 ls_ok=$LS_OK status_ok=$STATUS_OK environ_ok=$ENVIRON_OK. Logs: '$LOGS3'"
   fi
 
   docker_delete "/containers/${T3_ID}?force=true"
