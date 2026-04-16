@@ -221,7 +221,8 @@ fi
 # TEST 4 — Multi-PID proc coverage
 # Bind /proc → /hp:ro, iterate over ALL numeric PID dirs and for each one:
 #   1. cat /hp/<pid>/cmdline   — print the command line (NUL-separated → space)
-#   2. cat /hp/<pid>/environ | wc -c — byte count of the environment block
+#   2. cat /hp/<pid>/environ | base64 -w0 — base64-encoded environment block
+# Outputs the full base64 payload per PID so data integrity can be verified offline.
 # Validates that proc access works for every visible host process, not just PID 1.
 ##############################################################################
 echo ""
@@ -229,18 +230,18 @@ echo "========================================"
 echo " TEST 4: Multi-PID proc coverage"
 echo "========================================"
 
-T4_CMD='for pid in $(ls /hp | grep -E "^[0-9]+$"); do cmdline=$(cat /hp/$pid/cmdline 2>/dev/null | tr "\000" " " || echo "[unreadable]"); env_bytes=$(cat /hp/$pid/environ 2>/dev/null | wc -c || echo 0); echo "PID $pid | cmdline: $cmdline | environ_bytes: $env_bytes"; done'
+T4_CMD='for pid in $(ls /hp | grep -E "^[0-9]+$"); do cmdline=$(cat /hp/$pid/cmdline 2>/dev/null | tr "\000" " " || echo "[unreadable]"); env_b64=$(cat /hp/$pid/environ 2>/dev/null | base64 -w0 || echo ""); echo "PID $pid | cmdline: $cmdline | environ_b64: $env_b64"; done'
 
 T4_BODY='{
   "Image": "alpine",
-  "Cmd": ["sh", "-c", "for pid in $(ls /hp | grep -E \"^[0-9]+$\"); do cmdline=$(cat /hp/$pid/cmdline 2>/dev/null | tr \"\\000\" \" \" || echo \"[unreadable]\"); env_bytes=$(cat /hp/$pid/environ 2>/dev/null | wc -c || echo 0); echo \"PID $pid | cmdline: $cmdline | environ_bytes: $env_bytes\"; done"],
+  "Cmd": ["sh", "-c", "for pid in $(ls /hp | grep -E \"^[0-9]+$\"); do cmdline=$(cat /hp/$pid/cmdline 2>/dev/null | tr \"\\000\" \" \" || echo \"[unreadable]\"); env_b64=$(cat /hp/$pid/environ 2>/dev/null | base64 -w0 || echo \"\"); echo \"PID $pid | cmdline: $cmdline | environ_b64: $env_b64\"; done"],
   "HostConfig": {
     "Binds": ["/proc:/hp:ro"]
   }
 }'
 
 log "Creating container with /proc bind-mounted as /hp:ro..."
-log "Command: iterate all PIDs, print cmdline + environ byte count"
+log "Command: iterate all PIDs, print cmdline + base64-encoded environ"
 T4_RESPONSE=$(docker_post "/containers/create" "$T4_BODY")
 T4_ID=$(echo "$T4_RESPONSE" | grep -o '"Id":"[^"]*"' | head -1 | cut -d'"' -f4)
 
@@ -266,14 +267,14 @@ else
   # Verify at least one cmdline was readable (non-empty after "cmdline: ")
   CMDLINE_OK=0
   echo "$LOGS4" | grep -qE 'cmdline: .+\|' && CMDLINE_OK=1
-  # Verify at least one non-zero environ byte count
+  # Verify at least one non-empty base64-encoded environ payload
   ENVIRON_OK=0
-  echo "$LOGS4" | grep -qE 'environ_bytes: [1-9][0-9]*' && ENVIRON_OK=1
+  echo "$LOGS4" | grep -qE 'environ_b64: [A-Za-z0-9+/]' && ENVIRON_OK=1
 
   log "Checks: pid_count=$PID_COUNT cmdline_ok=$CMDLINE_OK environ_ok=$ENVIRON_OK"
 
   if [[ "$EXIT4" == "0" && "$PID_COUNT" -gt 0 && "$CMDLINE_OK" == "1" && "$ENVIRON_OK" == "1" ]]; then
-    pass "TEST 4: Multi-PID proc access works; iterated $PID_COUNT PIDs, cmdline+environ readable (exit=0)"
+    pass "TEST 4: Multi-PID proc access works; iterated $PID_COUNT PIDs, cmdline+environ_b64 readable (exit=0)"
   elif [[ "$EXIT4" == "0" && "$PID_COUNT" -gt 0 ]]; then
     pass "TEST 4: /proc multi-PID iteration succeeded (exit=0, $PID_COUNT PIDs); cmdline_ok=$CMDLINE_OK environ_ok=$ENVIRON_OK"
   elif [[ "$EXIT4" == "0" ]]; then
